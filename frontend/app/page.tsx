@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import ChartViewer from '../components/ChartViewer';
 
 export default function Dashboard() {
-  const { latestTick, latestSignal, isConnected } = useWebSocket('ws://localhost:8000/ws');
+  const { latestTick, latestSignal, isConnected } = useWebSocket('wss://evand1st-tensortrade-api.hf.space/ws');
   const router = useRouter();
 
   // --- TOAST NOTIFICATION STATE ---
@@ -215,6 +215,12 @@ export default function Dashboard() {
         id: userId,
         virtual_usdt_balance: updatedBalance
       });
+
+      if (balErr) {
+          console.error("Supabase Balance Update Error:", balErr);
+          throw balErr;
+      }
+
       // 3. Refresh UI from source of truth silently
       fetchUserData(userId);
 
@@ -239,7 +245,7 @@ export default function Dashboard() {
 
     // Notify FastAPI Backend to initialize/stop the live isolated trading loop
     try {
-      await fetch('http://localhost:8000/api/bot/toggle', {
+      await fetch('https://evand1st-tensortrade-api.hf.space/api/bot/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
