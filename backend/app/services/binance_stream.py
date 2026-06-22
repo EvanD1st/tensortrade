@@ -110,11 +110,11 @@ async def process_bot_logic_background(symbol, close_price, timestamp, manager: 
         print(f"❌ Error in AI Background Task: {e}")
 
 async def start_binance_stream(manager: ConnectionManager):
-    url = "wss://stream.binance.com:9443/ws/btcusdt@kline_1m/ethusdt@kline_1m/solusdt@kline_1m"
+    url = "wss://stream.binance.us:9443/ws/btcusdt@kline_1m/ethusdt@kline_1m/solusdt@kline_1m"
     
     while True:
         try:
-            print("⏳ Attempting to connect to Binance...")
+            print("⏳ Attempting to connect to Binance US...")
             # THE FIX: Disable client-side pings (ping_interval=None). 
             # Binance sends its own pings. If we send ours, Binance ignores them, 
             # and our client falsely assumes the connection died and kills it!

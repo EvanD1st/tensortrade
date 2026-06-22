@@ -27,7 +27,7 @@ async def toggle_bot(req: ToggleBotRequest):
     # 🚀 WARM-UP FETCH: If turning ON, grab 1,000 historical candles instantly for the AI
     if req.is_active:
         try:
-            exchange = ccxt.binance()
+            exchange = ccxt.binanceus()
             # Fetch 1m candles to match the live stream
             klines = exchange.fetch_ohlcv(req.symbol.replace('/', ''), timeframe='1m', limit=1000)
             
