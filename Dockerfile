@@ -8,6 +8,9 @@ WORKDIR /code
 COPY ./backend/requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
+# Install the missing openai dependency for the OpenRouter Risk Manager
+RUN pip install openai
+
 # Copy your entire backend code
 COPY ./backend /code
 
