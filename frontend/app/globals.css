@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #080F1F;
+  color: #E2E8F0;
+  /* Adds a subtle blue radial glow to the top of the page */
+  background-image: radial-gradient(circle at 50% -20%, #111c35 0%, #080f1f 80%);
+  background-attachment: fixed;
+}
+
+/* Optional custom scrollbar for a pro feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #080F1F;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E2D4A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00E5FF;
+}

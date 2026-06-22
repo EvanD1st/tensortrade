@@ -1,0 +1,23 @@
+fastapi[all]>=0.111.0
+uvicorn>=0.30.1
+
+# WebSockets & API
+websockets>=12.0
+ccxt>=4.3.46
+
+# Data Processing & ML
+pandas>=2.2.2
+numpy>=1.26.4
+torch>=2.0.0
+chronos-forecasting>=1.0.0
+
+# LLM & AI Agents
+groq>=0.9.0
+
+# Environment & Config
+python-dotenv>=1.0.1
+pydantic>=2.7.4
+pydantic-settings>=2.3.4
+
+# Database
+supabase>=2.5.1
