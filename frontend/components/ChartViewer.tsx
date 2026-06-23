@@ -33,22 +33,36 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Create the chart instance
+    // Create the chart instance with MT5 styling
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#94A3B8',
       },
       grid: {
-        vertLines: { color: '#1E2D4A' },
-        horzLines: { color: '#1E2D4A' },
+        vertLines: { color: '#1E2D4A', style: 1 }, // Lighter grid lines
+        horzLines: { color: '#1E2D4A', style: 1 },
       },
       width: chartContainerRef.current.clientWidth,
       height: chartContainerRef.current.clientHeight,
+      rightPriceScale: {
+        autoScale: true,
+        scaleMargins: {
+          top: 0.1,    // 10% margin at the top (lets candles stretch more)
+          bottom: 0.1, // 10% margin at the bottom
+        },
+        borderVisible: false,
+      },
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 15,   // MT5 Style: Leave empty space on the right edge
+        barSpacing: 12,    // MT5 Style: Make candles thicker by default
+        borderVisible: false,
       },
+      crosshair: {
+        mode: 0, // Normal crosshair mode
+      }
     });
 
     const candlestickSeries = chart.addCandlestickSeries({
@@ -107,11 +121,11 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         formattedData.sort((a: any, b: any) => a.time - b.time);
         candlestickSeries.setData(formattedData);
         
-        // THE FIX: Zoom in on the last 100 candles so they look thick and nice!
+        // MT5 Zoom: Focus on the last 50 candles so they look chunky
         const totalCandles = formattedData.length;
-        if (totalCandles > 100) {
+        if (totalCandles > 50) {
           chart.timeScale().setVisibleLogicalRange({
-            from: totalCandles - 100,
+            from: totalCandles - 50,
             to: totalCandles,
           });
         } else {
