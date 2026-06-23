@@ -33,7 +33,7 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Create the chart instance with MT5 styling
+    // Create the chart instance
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
@@ -56,8 +56,8 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 15,   // MT5 Style: Leave empty space on the right edge
-        barSpacing: 12,    // MT5 Style: Make candles thicker by default
+        rightOffset: 0,    // FIX: Removed the massive empty space on the right
+        barSpacing: 12,    // Keeping candles thicker by default
         borderVisible: false,
       },
       crosshair: {
@@ -121,7 +121,7 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         formattedData.sort((a: any, b: any) => a.time - b.time);
         candlestickSeries.setData(formattedData);
         
-        // MT5 Zoom: Focus on the last 50 candles so they look chunky
+        // Zoom: Focus on the last 50 candles so they look chunky
         const totalCandles = formattedData.length;
         if (totalCandles > 50) {
           chart.timeScale().setVisibleLogicalRange({
