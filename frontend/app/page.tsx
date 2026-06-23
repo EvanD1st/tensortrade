@@ -124,7 +124,9 @@ export default function Dashboard() {
     }
   }, [latestTick]);
 
-  const activePrice = livePrices[selectedPair.replace('/', '')] || latestTick?.price || 0;
+  // FIX: Strictly grab the live price of the selected pair. 
+  // Do NOT fall back to latestTick?.price, because that could belong to a different coin!
+  const activePrice = livePrices[selectedPair.replace('/', '')] || 0;
   
   const floatingPnL = openPositions.reduce((acc, trade) => {
     const currentPrice = livePrices[trade.symbol] || trade.price;
