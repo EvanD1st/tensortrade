@@ -7,6 +7,23 @@ interface ChartViewerProps {
   timeframe: string;
 }
 
+// Helper function to snap live timestamps to the exact candle start time
+const getSnappedTime = (timestampMs: number, timeframe: string) => {
+  let intervalSeconds = 60; // default 1m
+  switch (timeframe) {
+    case '1m': intervalSeconds = 60; break;
+    case '3m': intervalSeconds = 180; break;
+    case '5m': intervalSeconds = 300; break;
+    case '15m': intervalSeconds = 900; break;
+    case '30m': intervalSeconds = 1800; break;
+    case '1h': intervalSeconds = 3600; break;
+    case '4h': intervalSeconds = 14400; break;
+    case '1d': intervalSeconds = 86400; break;
+  }
+  const currentSeconds = Math.floor(timestampMs / 1000);
+  return currentSeconds - (currentSeconds % intervalSeconds);
+};
+
 export default function ChartViewer({ latestTick, selectedPair, timeframe }: ChartViewerProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -61,7 +78,6 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
 
         // Map Binance array to lightweight-charts object format
         const formattedData = data.map((d: any) => ({
-          // CRITICAL: Force strict integer seconds using Math.floor to prevent rendering crashes
           time: Math.floor(d[0] / 1000) as any, 
           open: parseFloat(d[1]),
           high: parseFloat(d[2]),
@@ -92,12 +108,11 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
     
     window.addEventListener('resize', handleResize);
 
-    // Cleanup when component unmounts OR when dependencies change
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [selectedPair, timeframe]); // CRITICAL: Re-run this effect when pair or timeframe changes!
+  }, [selectedPair, timeframe]);
 
   // --- 2. LIVE TICK UPDATES ---
   useEffect(() => {
@@ -105,14 +120,13 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
     
     const formattedPair = selectedPair.toUpperCase().replace('/', '');
     
-    // ONLY update the chart candle if the incoming tick matches our current dropdown selection
     if (latestTick.symbol.toUpperCase() === formattedPair) {
-      // Force strict integer seconds for the live tick as well
-      const tickTime = Math.floor(latestTick.timestamp / 1000);
+      // THE FIX: Snap the live timestamp to the exact current candle start time!
+      const snappedTime = getSnappedTime(latestTick.timestamp, timeframe);
       
       try {
         seriesRef.current.update({
-          time: tickTime as any,
+          time: snappedTime as any,
           open: latestTick.open,
           high: latestTick.high,
           low: latestTick.low,
@@ -122,7 +136,7 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         // Silently catch chronological update errors caused by slight websocket delays
       }
     }
-  }, [latestTick, selectedPair]);
+  }, [latestTick, selectedPair, timeframe]);
 
   return <div ref={chartContainerRef} className="absolute inset-0" />;
 }
