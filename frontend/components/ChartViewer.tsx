@@ -56,7 +56,7 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 0,    // FIX: Removed the massive empty space on the right
+        rightOffset: 0,    // Removed the massive empty space on the right
         barSpacing: 12,    // Keeping candles thicker by default
         borderVisible: false,
       },
@@ -139,20 +139,22 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
 
     fetchData();
 
-    // Handle window resizing smoothly
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
-        });
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
+    // --- THE FIX: ResizeObserver instead of window resize ---
+    // This perfectly catches when you open/close the sidebar and snaps the chart to the right edge
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (!chartContainerRef.current || !chartRef.current) return;
+      
+      const { width, height } = entries[0].contentRect;
+      chartRef.current.applyOptions({ width, height });
+      
+      // Force the chart to hug the right edge whenever the container changes size
+      chartRef.current.timeScale().scrollToRealTime();
+    });
+
+    resizeObserver.observe(chartContainerRef.current);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       chart.remove();
     };
   }, [selectedPair, timeframe]);
