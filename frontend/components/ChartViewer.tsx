@@ -53,14 +53,24 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         const response = await fetch(`https://api.binance.us/api/v3/klines?symbol=${formattedPair}&interval=${timeframe}&limit=1000`);
         const data = await response.json();
 
+        // Safety check: ensure Binance returned an array, not an error object
+        if (!Array.isArray(data)) {
+          console.error('Invalid data received from Binance API:', data);
+          return;
+        }
+
         // Map Binance array to lightweight-charts object format
         const formattedData = data.map((d: any) => ({
-          time: (d[0] / 1000) as any, // CRITICAL: Convert ms to seconds
+          // CRITICAL: Force strict integer seconds using Math.floor to prevent rendering crashes
+          time: Math.floor(d[0] / 1000) as any, 
           open: parseFloat(d[1]),
           high: parseFloat(d[2]),
           low: parseFloat(d[3]),
           close: parseFloat(d[4]),
         }));
+
+        // Safety check: sort chronologically just in case
+        formattedData.sort((a: any, b: any) => a.time - b.time);
 
         candlestickSeries.setData(formattedData);
       } catch (error) {
@@ -97,13 +107,20 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
     
     // ONLY update the chart candle if the incoming tick matches our current dropdown selection
     if (latestTick.symbol.toUpperCase() === formattedPair) {
-      seriesRef.current.update({
-        time: (latestTick.timestamp / 1000) as any,
-        open: latestTick.open,
-        high: latestTick.high,
-        low: latestTick.low,
-        close: latestTick.close,
-      });
+      // Force strict integer seconds for the live tick as well
+      const tickTime = Math.floor(latestTick.timestamp / 1000);
+      
+      try {
+        seriesRef.current.update({
+          time: tickTime as any,
+          open: latestTick.open,
+          high: latestTick.high,
+          low: latestTick.low,
+          close: latestTick.close,
+        });
+      } catch (e) {
+        // Silently catch chronological update errors caused by slight websocket delays
+      }
     }
   }, [latestTick, selectedPair]);
 
