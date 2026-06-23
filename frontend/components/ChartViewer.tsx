@@ -62,33 +62,62 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
     chartRef.current = chart;
     seriesRef.current = candlestickSeries;
 
-    // Fetch Historical Data from Binance US
+    // Fetch Historical Data with Smart Geo-Routing Fallback
     const fetchData = async () => {
       try {
         const formattedPair = selectedPair.toUpperCase().replace('/', '');
-        
-        const response = await fetch(`https://api.binance.us/api/v3/klines?symbol=${formattedPair}&interval=${timeframe}&limit=1000`);
-        const data = await response.json();
+        let data;
 
-        // Safety check: ensure Binance returned an array, not an error object
+        try {
+          // 1. Try Global Binance First (Works for you / non-US users)
+          const resCom = await fetch(`https://api.binance.com/api/v3/klines?symbol=${formattedPair}&interval=${timeframe}&limit=1000`);
+          if (!resCom.ok) throw new Error('Global Blocked');
+          data = await resCom.json();
+        } catch (e) {
+          console.log("Global Binance blocked, falling back to Binance US...");
+          // 2. Fallback to Binance US (Works for US users / servers)
+          const resUs = await fetch(`https://api.binance.us/api/v3/klines?symbol=${formattedPair}&interval=${timeframe}&limit=1000`);
+          data = await resUs.json();
+        }
+
         if (!Array.isArray(data)) {
           console.error('Invalid data received from Binance API:', data);
           return;
         }
 
-        // Map Binance array to lightweight-charts object format
-        const formattedData = data.map((d: any) => ({
-          time: Math.floor(d[0] / 1000) as any, 
-          open: parseFloat(d[1]),
-          high: parseFloat(d[2]),
-          low: parseFloat(d[3]),
-          close: parseFloat(d[4]),
-        }));
+        // Map Binance array to lightweight-charts format and deduplicate
+        const uniqueTimes = new Set();
+        const formattedData: any[] = [];
 
-        // Safety check: sort chronologically just in case
+        data.forEach((d: any) => {
+          const timeSecs = Math.floor(d[0] / 1000);
+          if (!uniqueTimes.has(timeSecs)) {
+            uniqueTimes.add(timeSecs);
+            formattedData.push({
+              time: timeSecs,
+              open: parseFloat(d[1]),
+              high: parseFloat(d[2]),
+              low: parseFloat(d[3]),
+              close: parseFloat(d[4]),
+            });
+          }
+        });
+
+        // Ensure chronological order
         formattedData.sort((a: any, b: any) => a.time - b.time);
-
         candlestickSeries.setData(formattedData);
+        
+        // THE FIX: Zoom in on the last 100 candles so they look thick and nice!
+        const totalCandles = formattedData.length;
+        if (totalCandles > 100) {
+          chart.timeScale().setVisibleLogicalRange({
+            from: totalCandles - 100,
+            to: totalCandles,
+          });
+        } else {
+          chart.timeScale().fitContent();
+        }
+        
       } catch (error) {
         console.error('Error fetching historical chart data:', error);
       }
@@ -121,7 +150,6 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
     const formattedPair = selectedPair.toUpperCase().replace('/', '');
     
     if (latestTick.symbol.toUpperCase() === formattedPair) {
-      // THE FIX: Snap the live timestamp to the exact current candle start time!
       const snappedTime = getSnappedTime(latestTick.timestamp, timeframe);
       
       try {
@@ -133,7 +161,7 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
           close: latestTick.close,
         });
       } catch (e) {
-        // Silently catch chronological update errors caused by slight websocket delays
+        // Silently catch chronological update errors
       }
     }
   }, [latestTick, selectedPair, timeframe]);
