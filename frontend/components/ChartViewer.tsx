@@ -40,7 +40,7 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         textColor: '#94A3B8',
       },
       grid: {
-        vertLines: { color: '#1E2D4A', style: 1 }, // Lighter grid lines
+        vertLines: { color: '#1E2D4A', style: 1 }, 
         horzLines: { color: '#1E2D4A', style: 1 },
       },
       width: chartContainerRef.current.clientWidth,
@@ -48,20 +48,22 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
       rightPriceScale: {
         autoScale: true,
         scaleMargins: {
-          top: 0.1,    // 10% margin at the top (lets candles stretch more)
-          bottom: 0.1, // 10% margin at the bottom
+          top: 0.1,    
+          bottom: 0.1, 
         },
         borderVisible: false,
       },
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 0,    // Removed the massive empty space on the right
-        barSpacing: 12,    // Keeping candles thicker by default
+        rightOffset: 0,    
+        barSpacing: 12,    
         borderVisible: false,
+        // THE FIX: Physically lock the chart from scrolling past the newest candle
+        fixRightEdge: true, 
       },
       crosshair: {
-        mode: 0, // Normal crosshair mode
+        mode: 0, 
       }
     });
 
@@ -83,13 +85,11 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         let data;
 
         try {
-          // 1. Try Global Binance First (Works for you / non-US users)
           const resCom = await fetch(`https://api.binance.com/api/v3/klines?symbol=${formattedPair}&interval=${timeframe}&limit=1000`);
           if (!resCom.ok) throw new Error('Global Blocked');
           data = await resCom.json();
         } catch (e) {
           console.log("Global Binance blocked, falling back to Binance US...");
-          // 2. Fallback to Binance US (Works for US users / servers)
           const resUs = await fetch(`https://api.binance.us/api/v3/klines?symbol=${formattedPair}&interval=${timeframe}&limit=1000`);
           data = await resUs.json();
         }
@@ -99,7 +99,6 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
           return;
         }
 
-        // Map Binance array to lightweight-charts format and deduplicate
         const uniqueTimes = new Set();
         const formattedData: any[] = [];
 
@@ -121,16 +120,9 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
         formattedData.sort((a: any, b: any) => a.time - b.time);
         candlestickSeries.setData(formattedData);
         
-        // Zoom: Focus on the last 50 candles so they look chunky
-        const totalCandles = formattedData.length;
-        if (totalCandles > 50) {
-          chart.timeScale().setVisibleLogicalRange({
-            from: totalCandles - 50,
-            to: totalCandles,
-          });
-        } else {
-          chart.timeScale().fitContent();
-        }
+        // THE FIX: Removed the buggy 'logicalRange' math that created a ghost candle.
+        // This strictly forces the chart to snap to the newest data with 0 offset.
+        chart.timeScale().scrollToRealTime();
         
       } catch (error) {
         console.error('Error fetching historical chart data:', error);
@@ -139,15 +131,12 @@ export default function ChartViewer({ latestTick, selectedPair, timeframe }: Cha
 
     fetchData();
 
-    // --- THE FIX: ResizeObserver instead of window resize ---
-    // This perfectly catches when you open/close the sidebar and snaps the chart to the right edge
+    // ResizeObserver cleanly recalculates width and snaps right when sidebar toggles
     const resizeObserver = new ResizeObserver((entries) => {
       if (!chartContainerRef.current || !chartRef.current) return;
       
       const { width, height } = entries[0].contentRect;
       chartRef.current.applyOptions({ width, height });
-      
-      // Force the chart to hug the right edge whenever the container changes size
       chartRef.current.timeScale().scrollToRealTime();
     });
 
